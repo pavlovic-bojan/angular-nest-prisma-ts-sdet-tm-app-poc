@@ -240,9 +240,9 @@ BASE_URL=http://localhost:3000 npm run tests:performance
 
 | Report | URL |
 |--------|-----|
-| **Landing** | [https://pavlovic-bojan.github.io/angular-nest-prisma-sdet-tm-app-poc/](https://pavlovic-bojan.github.io/angular-nest-prisma-sdet-tm-app-poc/) |
-| **Allure** (E2E) | [allure/](https://pavlovic-bojan.github.io/angular-nest-prisma-sdet-tm-app-poc/allure/) |
-| **k6 Load Test** | [load/](https://pavlovic-bojan.github.io/angular-nest-prisma-sdet-tm-app-poc/load/) |
+| **Landing** | [https://pavlovic-bojan.github.io/angular-nest-prisma-ts-sdet-tm-app-poc/](https://pavlovic-bojan.github.io/angular-nest-prisma-ts-sdet-tm-app-poc/) |
+| **Allure** (E2E) | [allure/](https://pavlovic-bojan.github.io/angular-nest-prisma-ts-sdet-tm-app-poc/allure/) |
+| **k6 Load Test** | [load/](https://pavlovic-bojan.github.io/angular-nest-prisma-ts-sdet-tm-app-poc/load/) |
 
 Deployed after each E2E and Performance run. **Settings → Pages → Deploy from branch** → `gh-pages`.
 
