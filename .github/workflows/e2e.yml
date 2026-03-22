@@ -76,16 +76,8 @@ jobs:
       - name: Prepare GitHub Pages content
         if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         run: |
-          mkdir -p gh-pages-content
-          git fetch origin gh-pages 2>/dev/null || true
-          if git rev-parse origin/gh-pages >/dev/null 2>&1; then
-            git archive origin/gh-pages 2>/dev/null | tar -x -C gh-pages-content 2>/dev/null || true
-          fi
-          mkdir -p gh-pages-content/allure gh-pages-content/load
+          mkdir -p gh-pages-content/allure
           cp -r allure-report/* gh-pages-content/allure/
-          if [ ! -f gh-pages-content/load/index.html ]; then
-            echo '<!DOCTYPE html><html><body><h1>No load test results</h1><p>Run Performance workflow.</p></body></html>' > gh-pages-content/load/index.html
-          fi
           cp .github/pages-index.html gh-pages-content/index.html
 
       - name: Deploy to GitHub Pages
@@ -95,4 +87,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./gh-pages-content
           publish_branch: gh-pages
-          force_orphan: true
+          keep_files: true
