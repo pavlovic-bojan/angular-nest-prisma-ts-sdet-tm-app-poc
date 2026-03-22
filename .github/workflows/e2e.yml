@@ -9,12 +9,6 @@ on:
       - "backend/**"
       - ".github/workflows/e2e.yml"
   workflow_dispatch:
-    inputs:
-      use_production:
-        description: "Run against production (BACKEND_URL, FRONTEND_URL)"
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   e2e:
@@ -30,35 +24,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
-            tests/package-lock.json
-
-      - name: Install backend
-        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
-        run: npm ci
-        working-directory: backend
-
-      - name: Generate Prisma & migrate
-        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
-        working-directory: backend
-        env:
-          DATABASE_URL: "file:./prisma/dev.db"
-        run: |
-          npx prisma generate
-          npx prisma migrate deploy
-          npx prisma db seed
-
-      - name: Build backend
-        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
-        working-directory: backend
-        run: npm run build
-
-      - name: Install frontend
-        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
-        run: npm ci
-        working-directory: frontend
+          cache-dependency-path: tests/package-lock.json
 
       - name: Install tests
         run: npm ci
@@ -68,60 +34,16 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: tests
 
-      - name: Start backend
-        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
-        working-directory: backend
-        env:
-          DATABASE_URL: "file:./prisma/dev.db"
-          PORT: "3000"
-          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-not-for-production' }}
-        run: npm run start:prod &
-
-      - name: Start frontend
-        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
-        working-directory: frontend
-        run: npm run start &
-        env:
-          NG_CLI_ANALYTICS: "false"
-
-      - name: Wait for services
-        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
-        run: |
-          echo "Waiting for backend..."
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
-              echo "Backend ready after ${i}s"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "ERROR: Backend did not start within 60s"
-              exit 1
-            fi
-            sleep 2
-          done
-          echo "Waiting for frontend..."
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:4200 > /dev/null 2>&1; then
-              echo "Frontend ready after ${i}s"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "ERROR: Frontend did not start within 60s"
-              exit 1
-            fi
-            sleep 2
-          done
-
       - name: Run API tests
         working-directory: tests
         env:
-          API_BASE_URL: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.use_production == 'true' && secrets.BACKEND_URL) || 'http://localhost:3000' }}
+          API_BASE_URL: ${{ secrets.BACKEND_URL }}
         run: npm run test:api
 
       - name: Run UI tests
         working-directory: tests
         env:
-          BASE_URL: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.use_production == 'true' && secrets.FRONTEND_URL) || 'http://localhost:4200' }}
+          BASE_URL: ${{ secrets.FRONTEND_URL }}
         run: npm run test:ui
 
       - name: Upload Allure results
