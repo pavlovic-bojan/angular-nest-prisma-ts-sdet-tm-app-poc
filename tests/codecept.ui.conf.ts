@@ -15,7 +15,7 @@ export const config = {
   },
   helpers: {
     Playwright: {
-      url: "http://localhost:4200",
+      url: process.env.BASE_URL || process.env.FRONTEND_URL || "http://localhost:4200",
       show: process.env.HEADLESS === "false",
       browser: "chromium",
       restart: "context",
