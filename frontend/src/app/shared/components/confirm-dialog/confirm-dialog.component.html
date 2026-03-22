@@ -1,0 +1,44 @@
+@if (open()) {
+  <div
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+    aria-modal="true"
+    role="alertdialog"
+    [attr.aria-label]="title()"
+  >
+    <div
+      class="fixed inset-0 bg-black/50"
+      (click)="cancel.emit()"
+    ></div>
+    <div class="relative bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 animate-scale-in border border-slate-200 dark:border-slate-700">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold text-slate-800 dark:text-white">{{ title() }}</h3>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ message() }}</p>
+        </div>
+      </div>
+      <div class="mt-6 flex justify-end gap-3">
+        <button
+          type="button"
+          (click)="cancel.emit()"
+          data-testid="confirm-dialog-cancel"
+          class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="confirm.emit()"
+          data-testid="confirm-dialog-confirm"
+          class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition"
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+}

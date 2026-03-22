@@ -1,0 +1,56 @@
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+  <div class="flex items-center gap-4">
+    <span class="text-sm text-slate-600 dark:text-slate-400">Rows per page:</span>
+    <select
+      [value]="pageSize()"
+      (change)="onPageSizeChange($event)"
+      data-testid="pagination-size"
+      class="px-3 py-1.5 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-slate-500"
+    >
+      @for (size of pageSizeOptions(); track size) {
+        <option [value]="size">{{ size }}</option>
+      }
+    </select>
+    <span class="text-sm text-slate-600 dark:text-slate-400">
+      {{ startItem() }}&ndash;{{ endItem() }} of {{ totalItems() }}
+    </span>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <button
+      (click)="goToPage(currentPage() - 1)"
+      [disabled]="currentPage() <= 1"
+      data-testid="pagination-prev"
+      class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-200"
+      aria-label="Previous page"
+    >
+      Previous
+    </button>
+    @for (p of visiblePages(); track p) {
+      <button
+        (click)="goToPage(p)"
+        class="min-w-[2rem] px-3 py-1.5 text-sm rounded-lg transition"
+        [class.bg-slate-800]="p === currentPage()"
+        [class.text-white]="p === currentPage()"
+        [class.border]="p !== currentPage()"
+        [class.border-slate-300]="p !== currentPage()"
+        [class.dark:border-slate-600]="p !== currentPage()"
+        [class.hover:bg-slate-100]="p !== currentPage()"
+        [class.dark:hover:bg-slate-800]="p !== currentPage()"
+        [attr.aria-label]="'Page ' + p"
+        [attr.aria-current]="p === currentPage() ? 'page' : null"
+      >
+        {{ p }}
+      </button>
+    }
+    <button
+      (click)="goToPage(currentPage() + 1)"
+      [disabled]="currentPage() >= totalPages()"
+      data-testid="pagination-next"
+      class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-200"
+      aria-label="Next page"
+    >
+      Next
+    </button>
+  </div>
+</div>

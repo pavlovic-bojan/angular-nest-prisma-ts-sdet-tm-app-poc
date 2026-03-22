@@ -1,0 +1,13 @@
+{
+  "endpoints": {
+    "health": "/",
+    "login": "/auth/login",
+    "users": "/users",
+    "projects": "/projects",
+    "tasks": "/tasks"
+  },
+  "thinkTime": {
+    "min": 0.2,
+    "max": 0.8
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "app",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix frontend && npm install --prefix backend && npm install --prefix tests",
+    "start": "npm run start --prefix frontend",
+    "start:backend": "npm run start:dev --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "build:backend": "npm run build --prefix backend",
+    "test": "npm run test --prefix frontend",
+    "test:backend": "npm run test --prefix backend",
+    "test:backend:e2e": "npm run test:e2e --prefix backend",
+    "e2e": "npm run test:e2e --prefix tests",
+    "test:api": "npm run test:api --prefix tests",
+    "db:migrate": "npm run prisma:migrate --prefix backend",
+    "db:seed": "npm run prisma:seed --prefix backend",
+    "tests:performance": "BASE_URL=${BASE_URL:-http://localhost:3000} npm run smoke --prefix tests/performance"
+  }
+}

@@ -1,0 +1,102 @@
+name: Performance Tests
+
+# Manual only – BASE_URL: input or BACKEND_URL secret
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: "Test type"
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - baseline
+          - load
+          - stress
+          - spike
+          - breakpoint
+          - soak
+          - all
+      base_url:
+        description: "Backend URL (leave empty to use BACKEND_URL secret)"
+        required: false
+        type: string
+
+jobs:
+  performance:
+    name: k6 Performance Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+          k6 version
+
+      - name: Run performance test
+        working-directory: tests/performance
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || secrets.BACKEND_URL }}
+          LOGIN_EMAIL: ${{ secrets.LOGIN_EMAIL || 'demo@example.com' }}
+          LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD || 'password123' }}
+        run: |
+          if [ -z "$BASE_URL" ]; then
+            echo "Error: BASE_URL required. Set BACKEND_URL secret or provide base_url input."
+            exit 1
+          fi
+          echo "Using BASE_URL: $BASE_URL"
+          TEST_TYPE="${{ github.event.inputs.test_type || 'smoke' }}"
+          case "$TEST_TYPE" in
+            smoke)      k6 run smoke/smoke.js ;;
+            baseline)   k6 run baseline/baseline.js ;;
+            load)       k6 run load/load.js ;;
+            stress)     k6 run stress/stress.js ;;
+            spike)      k6 run spike/spike.js ;;
+            breakpoint) k6 run breakpoint/breakpoint.js ;;
+            soak)       k6 run soak/soak.js ;;
+            all)        k6 run smoke/smoke.js && k6 run baseline/baseline.js && k6 run load/load.js ;;
+            *)          k6 run smoke/smoke.js ;;
+          esac
+
+      - name: Ensure k6 report exists
+        if: always()
+        run: |
+          mkdir -p tests/performance/k6-report
+          if [ ! -f tests/performance/k6-report/index.html ]; then
+            echo '<!DOCTYPE html><html><head><title>No k6 Results</title></head><body><h1>No report</h1><p>Test failed or did not produce HTML report.</p></body></html>' > tests/performance/k6-report/index.html
+          fi
+
+      - name: Prepare GitHub Pages content
+        if: always()
+        run: |
+          mkdir -p gh-pages-content
+          git fetch origin gh-pages 2>/dev/null || true
+          if git rev-parse origin/gh-pages >/dev/null 2>&1; then
+            git archive origin/gh-pages 2>/dev/null | tar -x -C gh-pages-content 2>/dev/null || true
+          fi
+          mkdir -p gh-pages-content/allure gh-pages-content/load
+          cp -r tests/performance/k6-report/* gh-pages-content/load/
+          if [ ! -f gh-pages-content/allure/index.html ]; then
+            echo '<!DOCTYPE html><html><body><h1>No Allure results yet</h1><p>Run E2E workflow.</p></body></html>' > gh-pages-content/allure/index.html
+          fi
+          cp .github/pages-index.html gh-pages-content/index.html
+
+      - name: Deploy to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./gh-pages-content
+          publish_branch: gh-pages
+          force_orphan: true

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node", "codeceptjs"],
+    "outDir": "./dist"
+  },
+  "include": ["e2e/**/*.ts", "codecept.*.ts", "steps.d.ts", "types/**/*.d.ts"]
+}

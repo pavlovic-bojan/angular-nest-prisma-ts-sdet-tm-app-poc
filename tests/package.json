@@ -1,0 +1,24 @@
+{
+  "name": "tests",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:api && npm run test:ui",
+    "test:api": "codeceptjs run --config codecept.api.conf.ts --features",
+    "test:ui": "codeceptjs run --config codecept.ui.conf.ts --features",
+    "test:api:report": "npm run test:api && allure generate allure-results -o allure-report --clean && allure open allure-report",
+    "test:ui:report": "npm run test:ui && allure generate allure-results -o allure-report --clean && allure open allure-report",
+    "test:report": "npm run test && allure generate allure-results -o allure-report --clean && allure open allure-report"
+  },
+  "devDependencies": {
+    "@codeceptjs/configure": "^1.0.6",
+    "@types/node": "^20.10.0",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "allure-codeceptjs": "^3.4.5",
+    "codeceptjs": "^3.7.3",
+    "playwright": "^1.58.2",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.5.2"
+  }
+}

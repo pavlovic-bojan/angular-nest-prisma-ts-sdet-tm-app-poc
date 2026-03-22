@@ -1,0 +1,163 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "tests/**"
+      - "frontend/**"
+      - "backend/**"
+      - ".github/workflows/e2e.yml"
+  workflow_dispatch:
+    inputs:
+      use_production:
+        description: "Run against production (BACKEND_URL, FRONTEND_URL)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  e2e:
+    name: API + UI E2E
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            tests/package-lock.json
+
+      - name: Install backend
+        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
+        run: npm ci
+        working-directory: backend
+
+      - name: Generate Prisma & migrate
+        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
+        working-directory: backend
+        env:
+          DATABASE_URL: "file:./prisma/dev.db"
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+          npx prisma db seed
+
+      - name: Install frontend
+        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install tests
+        run: npm ci
+        working-directory: tests
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+        working-directory: tests
+
+      - name: Start backend
+        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
+        working-directory: backend
+        env:
+          DATABASE_URL: "file:./prisma/dev.db"
+          PORT: "3000"
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-not-for-production' }}
+        run: npm run start &
+
+      - name: Start frontend
+        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
+        working-directory: frontend
+        run: npm run start &
+        env:
+          NG_CLI_ANALYTICS: "false"
+
+      - name: Wait for services
+        if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.use_production }}
+        run: |
+          echo "Waiting for backend..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+              echo "Backend ready"
+              break
+            fi
+            sleep 2
+          done
+          echo "Waiting for frontend..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4200 > /dev/null 2>&1; then
+              echo "Frontend ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run API tests
+        working-directory: tests
+        env:
+          API_BASE_URL: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.use_production == 'true' && secrets.BACKEND_URL) || 'http://localhost:3000' }}
+        run: npm run test:api
+
+      - name: Run UI tests
+        working-directory: tests
+        env:
+          BASE_URL: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.use_production == 'true' && secrets.FRONTEND_URL) || 'http://localhost:4200' }}
+        run: npm run test:ui
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: tests/allure-results
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Install Allure CLI
+        if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: |
+          wget -q https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
+          tar -zxf allure-2.24.1.tgz
+          sudo mv allure-2.24.1 /opt/allure
+          sudo ln -sf /opt/allure/bin/allure /usr/local/bin/allure
+
+      - name: Generate Allure report
+        if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: |
+          if [ -d "tests/allure-results" ] && [ "$(ls -A tests/allure-results 2>/dev/null)" ]; then
+            allure generate tests/allure-results --clean -o allure-report
+          else
+            mkdir -p allure-report
+            echo '<!DOCTYPE html><html><head><title>No Allure Results</title></head><body><h1>No E2E results</h1><p>Tests did not produce Allure output.</p></body></html>' > allure-report/index.html
+          fi
+
+      - name: Prepare GitHub Pages content
+        if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: |
+          mkdir -p gh-pages-content
+          git fetch origin gh-pages 2>/dev/null || true
+          if git rev-parse origin/gh-pages >/dev/null 2>&1; then
+            git archive origin/gh-pages 2>/dev/null | tar -x -C gh-pages-content 2>/dev/null || true
+          fi
+          mkdir -p gh-pages-content/allure gh-pages-content/load
+          cp -r allure-report/* gh-pages-content/allure/
+          if [ ! -f gh-pages-content/load/index.html ]; then
+            echo '<!DOCTYPE html><html><body><h1>No load test results</h1><p>Run Performance workflow.</p></body></html>' > gh-pages-content/load/index.html
+          fi
+          cp .github/pages-index.html gh-pages-content/index.html
+
+      - name: Deploy to GitHub Pages
+        if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./gh-pages-content
+          publish_branch: gh-pages
+          force_orphan: true

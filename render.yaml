@@ -1,0 +1,17 @@
+# Render Blueprint - https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: angular-nest-prisma-sdet-tm-app-poc
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start:prod
+    # Migrations and seed on each deploy (SQLite is reset)
+    releaseCommand: npx prisma migrate deploy && npx prisma db seed
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://angular-nest-prisma-sdet-tm-app-poc.vercel.app
